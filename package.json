@@ -1,0 +1,16 @@
+{
+  "name": "xsnapshot",
+  "version": "0.1.0",
+  "description": "X (Twitter) profile snapshot website from official user archives",
+  "main": "index.js",
+  "scripts": {
+    "parse": "node parser/parse-ytd.js",
+    "generate": "node generator/static-page.js"
+  },
+  "keywords": ["twitter", "x", "archive", "snapshot", "seo"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VeigaPunk/xsnapshot.git"
+  }
+}
