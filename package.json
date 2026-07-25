@@ -1,16 +1,22 @@
 {
   "name": "xsnapshot",
   "version": "0.1.0",
-  "description": "X (Twitter) profile snapshot website from official user archives",
-  "main": "index.js",
-  "scripts": {
-    "parse": "node parser/parse-ytd.js",
-    "generate": "node generator/static-page.js"
+  "description": "Permanent SEO/AI-crawlable public X (Twitter) profile snapshots from official user archives",
+  "main": "cli.js",
+  "bin": {
+    "xsnapshot": "./cli.js"
   },
-  "keywords": ["twitter", "x", "archive", "snapshot", "seo"],
+  "scripts": {
+    "start": "node cli.js",
+    "generate": "node cli.js"
+  },
+  "keywords": ["twitter", "x", "archive", "snapshot", "seo", "ai-crawlable"],
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/VeigaPunk/xsnapshot.git"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

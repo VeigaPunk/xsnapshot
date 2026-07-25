@@ -1,88 +1,65 @@
-# XSnapshot Handoff Package
+# HANDOFF — XSnapshot deploy package
 
-**Repo:** https://github.com/VeigaPunk/xsnapshot  
-**Purpose:** Ready-to-deploy static site generator for permanent, SEO/AI-crawlable X (Twitter) profile snapshots from user-submitted official archives.
+**For the next agent that deploys websites.**
 
-## What this is
-Users download their official X archive ZIP → this tool parses public tweets + profile only → outputs a complete static website folder that any static host can serve.
+This repo is a complete, text-first, static-site generator for permanent public X (Twitter) profile snapshots from the user's own official archive ZIP.
 
-## Current files
-- `parser/parse-ytd.js` — strip `window.YTD.*.partN` + extract public tweets
-- `generator/static-page.js` — generate HTML + JSON-LD Person + SocialMediaPosting
-- `package.json`
-- `README.md`
+## What it produces
+A folder ready for any static host (Cloudflare Pages, Vercel, Netlify, GitHub Pages, S3+CloudFront, etc.):
 
-## Immediate next steps for deploy agent
-
-### 1. Make it a complete CLI (copy-paste ready)
-Create `generate.js` at root:
-
-```js
-#!/usr/bin/env node
-const fs = require('fs');
-const path = require('path');
-const { parseYTDFile, extractPublicTweets } = require('./parser/parse-ytd.js');
-const { generateHTML } = require('./generator/static-page.js');
-
-const inputDir = process.argv[2];
-const outDir = process.argv[3] || './out';
-if (!inputDir) {
-  console.error('Usage: node generate.js <extracted-archive-dir> [out-dir]');
-  process.exit(1);
-}
-
-const dataDir = fs.existsSync(path.join(inputDir, 'data')) ? path.join(inputDir, 'data') : inputDir;
-let tweets = [];
-let profile = { screen_name: 'unknown', name: 'Unknown', bio: '' };
-
-for (const f of fs.readdirSync(dataDir)) {
-  if (f.match(/tweets.*\.js$/)) {
-    const raw = fs.readFileSync(path.join(dataDir, f), 'utf8');
-    tweets = tweets.concat(extractPublicTweets(parseYTDFile(raw)));
-  }
-  if (f === 'account.js' || f === 'profile.js') {
-    // extend parser for these if needed
-  }
-}
-
-tweets.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-const date = new Date().toISOString().slice(0, 10);
-fs.mkdirSync(outDir, { recursive: true });
-fs.writeFileSync(path.join(outDir, 'index.html'), generateHTML(profile, tweets, date));
-fs.writeFileSync(path.join(outDir, 'tweets.json'), JSON.stringify(tweets));
-fs.writeFileSync(path.join(outDir, 'robots.txt'), 'User-agent: *\nAllow: /\n');
-console.log(`Wrote ${tweets.length} tweets to ${outDir}`);
+```
+out/@handle/
+  index.html          # SEO + AI crawlable page with JSON-LD
+  data.json           # full tweets + profile (for client search / future)
+  robots.txt
+  sitemap.xml
 ```
 
-### 2. Deploy the *generated* site (any static host)
-After running the generator on a real archive:
+No server required for the snapshot pages themselves.
 
-**Cloudflare Pages (recommended - unlimited bandwidth)**
-1. `npx wrangler pages project create xsnapshot`
-2. Or drag the `out/` folder to Cloudflare Pages dashboard.
-3. Custom domain optional.
+## One-command generation (after user extracts official archive)
 
-**Vercel / Netlify / GitHub Pages**
-- Push the generated `out/` (or whole repo) and set publish directory to the output folder.
-- Or use `npx serve out` for local test.
+```bash
+npm install          # zero runtime deps beyond Node
+node cli.js /path/to/extracted-x-archive ./out
+```
 
-**GitHub Pages**
-- Put generated files in `/docs` or `gh-pages` branch.
+Or with ZIP later (jszip already planned).
 
-### 3. For the *product* site (upload UI + claim)
-Later layer: Next.js / Cloudflare Workers + R2 for ZIP upload, OAuth claim (X users.read), then publish the static output under `/@handle`.
+## Deploy instructions (static)
 
-For pure static MVP: the generator above is enough. Users run it themselves and host the folder.
+### Cloudflare Pages (recommended — unlimited bandwidth free tier)
+1. Create project from this repo or from the generated `out/` folder.
+2. Build command: leave empty or `echo "static"`
+3. Output directory: `out` (or the folder containing the generated @handle sites)
+4. Custom domain optional.
+5. For multi-user hosted version later: add Pages Function for upload + claim.
 
-## Legal / Trust notes for deploy agent
-- Only public tweets + profile.
-- Every page must keep the irreversible-index banner.
-- No DMs, no private data.
-- User must supply their own archive.
+### Vercel / Netlify
+- Framework preset: Other
+- Output directory = the generated static folder
+- No build needed for pure static.
 
-## Success criteria for next agent
-- `node generate.js /path/to/extracted-x-archive ./out` produces a working, crawlable `index.html`.
-- The folder can be dropped on any static host and immediately appear in Google/AI fetches.
-- Self-host path remains first-class.
+### Self-host by user
+User runs the CLI locally → gets ZIP of their page → uploads to their own GitHub Pages / Netlify / own domain. Zero cost to you.
 
-This is the complete handoff. No further research required.
+## Legal / product constraints the deploy agent must respect
+- Only public tweets + public profile fields.
+- Every page must show the irreversible-index warning banner.
+- Claim gate (X OAuth) before a snapshot becomes public is required for the hosted multi-user version.
+- Never rehost media in v1 (URLs only).
+- User content remains user-owned; MIT only for the code.
+
+## Next engineering tickets (ordered)
+1. Add ZIP support with jszip (browser + Node).
+2. Harden multi-part tweets-part*.js (already partially done).
+3. X OAuth 2.0 PKCE claim flow (users.read scope only).
+4. Hosted upload UI + private preview → claim → public publish.
+5. Always emit downloadable static ZIP of the generated site.
+
+## Axes the design already protects
+Friction, fidelity, indexability, legal, cost, longevity, trust — all green for v1 static path.
+
+Repo: https://github.com/VeigaPunk/xsnapshot
+
+Hand this entire repo (or just the generated static output) to any static-site deploy agent. No further research required.

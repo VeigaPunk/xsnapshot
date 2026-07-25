@@ -1,22 +1,36 @@
 /**
- * Generate a simple SEO/AI-friendly static HTML snapshot page.
- * Input: profile + tweets array from parser.
+ * Full static site generator for one snapshot.
+ * Outputs index.html (with client-side search for unlimited tweets),
+ * data.json, robots.txt, sitemap.xml.
+ * Ready for Cloudflare Pages / Vercel / Netlify / any static host.
  */
+const fs = require('fs');
+const path = require('path');
 
-function generateJSONLD(profile, tweets) {
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function generateJSONLD(profile, tweets, snapshotDate) {
+  const handle = profile.screen_name || 'unknown';
   return {
     "@context": "https://schema.org",
     "@type": "Person",
-    "name": profile.name || profile.screen_name,
-    "alternateName": "@" + (profile.screen_name || ""),
-    "description": profile.description || profile.bio || "",
-    "url": "https://xsnapshot.example/@" + (profile.screen_name || ""),
-    "sameAs": "https://x.com/" + (profile.screen_name || ""),
+    "name": profile.name || handle,
+    "alternateName": "@" + handle,
+    "description": profile.description || "",
+    "url": "https://xsnapshot.example/@" + handle,
+    "sameAs": ["https://x.com/" + handle],
+    "image": profile.avatar || undefined,
     "mainEntityOfPage": {
       "@type": "ItemList",
-      "name": "Tweet Snapshot",
+      "name": "X Archive Snapshot as of " + snapshotDate,
       "numberOfItems": tweets.length,
-      "itemListElement": tweets.slice(0, 50).map((t, i) => ({
+      "itemListElement": tweets.slice(0, 100).map((t, i) => ({
         "@type": "ListItem",
         "position": i + 1,
         "item": {
@@ -24,67 +38,110 @@ function generateJSONLD(profile, tweets) {
           "identifier": t.id,
           "datePublished": t.created_at,
           "text": t.text,
-          "author": { "@type": "Person", "name": profile.name }
+          "author": { "@type": "Person", "name": profile.name || handle }
         }
       }))
     }
   };
 }
 
-function generateHTML(profile, tweets, snapshotDate) {
-  const handle = profile.screen_name || "unknown";
-  const jsonld = JSON.stringify(generateJSONLD(profile, tweets));
-  const tweetCards = tweets.slice(0, 200).map(t => `
-    <article class="tweet" id="t-${t.id}">
-      <time datetime="${t.created_at}">${t.created_at}</time>
-      <p>${escapeHtml(t.text)}</p>
-      ${t.media && t.media.length ? `<div class="media">Media: ${t.media.map(m => m.media_url_https || m.url).join(', ')}</div>` : ''}
-    </article>`).join('\n');
+function generateHTML(snapshot) {
+  const profile = snapshot.profile || {};
+  const tweets = snapshot.tweets || [];
+  const handle = profile.screen_name || 'unknown';
+  const snapshotDate = snapshot.snapshot_date || new Date().toISOString().slice(0, 10);
+  const jsonld = JSON.stringify(generateJSONLD(profile, tweets, snapshotDate));
 
+  // Client-side render for fidelity on large archives (no 200 limit)
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>@${handle} — XSnapshot (as of ${snapshotDate})</title>
-  <meta name="description" content="Permanent public snapshot of @${handle} tweets from official X archive. Full history, searchable, crawlable.">
+  <title>@${escapeHtml(handle)} — X Snapshot (as of ${snapshotDate})</title>
+  <meta name="description" content="Permanent public snapshot of @${escapeHtml(handle)} X posts from official archive. Full history for Google and AI discovery.">
   <meta name="robots" content="index, follow">
-  <link rel="canonical" href="https://xsnapshot.example/@${handle}">
+  <link rel="canonical" href="https://xsnapshot.example/@${escapeHtml(handle)}">
   <script type="application/ld+json">${jsonld}</script>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 680px; margin: 0 auto; padding: 1rem; line-height: 1.5; }
-    .banner { background: #f0f0f0; padding: 0.75rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem; }
-    .tweet { border-bottom: 1px solid #eee; padding: 1rem 0; }
-    time { color: #666; font-size: 0.85rem; }
+    :root { --bg:#0f1419; --card:#1a1f26; --text:#e7e9ea; --muted:#8b98a5; --accent:#1d9bf0; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); line-height:1.5; }
+    header, main, footer { max-width:680px; margin:0 auto; padding:1rem 1.25rem; }
+    .banner { background:var(--card); border:1px solid #2f3336; padding:0.85rem 1rem; border-radius:10px; font-size:0.9rem; color:var(--muted); margin-bottom:1.25rem; }
+    .profile { display:flex; gap:1rem; align-items:flex-start; margin-bottom:1rem; }
+    .avatar { width:72px; height:72px; border-radius:50%; background:#333; object-fit:cover; }
+    h1 { margin:0; font-size:1.35rem; }
+    .handle { color:var(--muted); }
+    input[type=search] { width:100%; padding:0.7rem 1rem; border-radius:999px; border:1px solid #2f3336; background:var(--card); color:var(--text); margin:1rem 0; }
+    .tweet { background:var(--card); border:1px solid #2f3336; border-radius:12px; padding:1rem; margin-bottom:0.6rem; }
+    .tweet time { color:var(--muted); font-size:0.82rem; }
+    .tweet a { color:var(--accent); }
+    footer { text-align:center; color:var(--muted); font-size:0.85rem; padding-bottom:2.5rem; }
   </style>
 </head>
 <body>
   <header>
-    <h1>@${handle}</h1>
-    <p>${escapeHtml(profile.description || profile.bio || '')}</p>
     <div class="banner">
       <strong>Official X archive snapshot taken ${snapshotDate}.</strong><br>
-      Not a live feed. Media links may break. This page is user-submitted and claimable.
-      Google and AI crawlers may index it permanently.
+      Not a live feed. Media links may expire. This page is user-submitted.
+      <strong>Google and AI crawlers may index it permanently</strong> even if later deleted here.
+    </div>
+    <div class="profile">
+      ${profile.avatar ? `<img class="avatar" src="${escapeHtml(profile.avatar)}" alt="" onerror="this.style.display='none'">` : ''}
+      <div>
+        <h1>${escapeHtml(profile.name || handle)}</h1>
+        <div class="handle">@${escapeHtml(handle)} · ${tweets.length} posts in this snapshot</div>
+        <p>${escapeHtml(profile.description || '')}</p>
+        ${profile.location ? `<p class="handle">${escapeHtml(profile.location)}</p>` : ''}
+      </div>
     </div>
   </header>
   <main>
-    <p>${tweets.length} public tweets in this snapshot.</p>
-    ${tweetCards}
+    <input type="search" id="q" placeholder="Search this snapshot…" autocomplete="off">
+    <div id="timeline"></div>
   </main>
   <footer>
-    <p>Generated by <a href="https://github.com/VeigaPunk/xsnapshot">XSnapshot</a>. Data remains the user's. Export / delete available after claim.</p>
+    Generated by <a href="https://github.com/VeigaPunk/xsnapshot" style="color:var(--accent)">XSnapshot</a>.
+    User-owned data. Claim / delete / export after verification.
   </footer>
+  <script>
+    // Full fidelity: load from data.json (or inline for single-file)
+    const DATA = ${JSON.stringify({ profile, tweets, snapshot_date: snapshotDate }).replace(/</g, '\\u003c')};
+    const timeline = document.getElementById('timeline');
+    function render(list) {
+      timeline.innerHTML = list.map(t => `
+        <article class="tweet" data-text="${escapeHtml((t.text || '').toLowerCase())}">
+          <time datetime="${escapeHtml(t.created_at || '')}">${escapeHtml(t.created_at || '')}</time>
+          <p>${escapeHtml(t.text || '')}</p>
+          ${(t.media && t.media.length) ? `<div class="handle">Media: ${t.media.map(m => escapeHtml(m.url || '')).join(', ')}</div>` : ''}
+        </article>`).join('');
+    }
+    render(DATA.tweets);
+    document.getElementById('q').addEventListener('input', e => {
+      const q = e.target.value.toLowerCase().trim();
+      if (!q) return render(DATA.tweets);
+      render(DATA.tweets.filter(t => (t.text || '').toLowerCase().includes(q)));
+    });
+    function escapeHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+  </script>
 </body>
 </html>`;
 }
 
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+function generateSite(snapshot, targetDir) {
+  fs.mkdirSync(targetDir, { recursive: true });
+  const html = generateHTML(snapshot);
+  fs.writeFileSync(path.join(targetDir, 'index.html'), html, 'utf8');
+  fs.writeFileSync(path.join(targetDir, 'data.json'), JSON.stringify(snapshot, null, 2), 'utf8');
+  fs.writeFileSync(path.join(targetDir, 'robots.txt'), 'User-agent: *\nAllow: /\n', 'utf8');
+  const handle = (snapshot.profile && snapshot.profile.screen_name) || 'unknown';
+  fs.writeFileSync(path.join(targetDir, 'sitemap.xml'),
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://xsnapshot.example/@${handle}</loc><lastmod>${snapshot.snapshot_date}</lastmod></url>\n</urlset>\n`,
+    'utf8');
+  return targetDir;
 }
 
-module.exports = { generateHTML, generateJSONLD };
+module.exports = { generateHTML, generateJSONLD, generateSite };

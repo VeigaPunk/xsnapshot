@@ -1,29 +1,32 @@
 # XSnapshot
 
-Permanent, SEO/AI-crawlable public snapshots of X (Twitter) profiles from user-submitted official archives.
+Permanent, SEO- and AI-crawlable public profile snapshots of X (Twitter) accounts from the **user's own official archive**.
 
-**Why:** X restricts scraping and full history access. Users own their data. If they want to be found on Google and AI crawlers, they should be able to publish a complete, permanent, searchable archive snapshot.
+## Why
+X blocks scraping and limits full history. Users own their data. This turns the official archive into clean public pages that Google and AI crawlers can index.
 
-## How it works
-1. User requests official archive from X (Settings → Your account → Download an archive of your data).
-2. Uploads the ZIP here (or uses the client-side generator).
-3. We parse only public tweets + profile.
-4. Generate claimable public page `/@handle` + optional self-host static ZIP.
-5. OAuth claim to verify ownership before public publish.
-6. Clear "snapshot as of DATE" + irreversible index warning.
+## Quick start (local static generation)
+```bash
+git clone https://github.com/VeigaPunk/xsnapshot.git
+cd xsnapshot
+# Extract your official X archive somewhere
+node cli.js /path/to/extracted-archive ./out
+open out/@yourhandle/index.html
+```
+
+The `out/@handle/` folder is ready for Cloudflare Pages, Vercel, Netlify, GitHub Pages, or any static host.
+
+## Handoff for deploy agents
+See **[HANDOFF.md](HANDOFF.md)** — complete instructions, constraints, and next tickets.
 
 ## Axes
-- Low friction (official ZIP)
-- Full fidelity (complete history)
-- High indexability (static HTML + JSON-LD)
-- Low legal risk (user-owned data + consent)
-- Cheap scale (text-first)
-- Longevity (versioned + self-host export)
-- Trust (claim/delete/warn)
+1. Low friction (official ZIP → one command)
+2. Full fidelity (complete public history)
+3. High indexability (HTML + JSON-LD + robots + sitemap)
+4. Low legal risk (user-owned + public-only + consent warning)
+5. Cheap (text-first static)
+6. Longevity (static + self-host export path)
+7. Trust (irreversible-index banner + claim design)
 
-## Status
-MVP in progress. Parser + static page generator below.
-
-See `/parser` and `/generator`.
-
-License: MIT. User data remains theirs.
+## License
+MIT (code). User content remains the user's.
