@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>xsnapshot — your X profile, persistent and crawlable</title>
+<meta name="description" content="Snapshot your entire X profile from your own official archive and publish it as a permanent, crawlable, search-enabled website. Your data, your copy, on the open web.">
+<link rel="canonical" href="https://xsnapshot.app/">
+<style>
+:root{color-scheme:dark}
+body{margin:0;font:16px/1.6 system-ui,sans-serif;background:#0b0e14;color:#e6e9ef;display:grid;min-height:100vh;place-items:center}
+main{max-width:660px;padding:48px 24px}
+h1{font-size:2.4rem;margin:.2em 0 .1em}
+p{color:#9aa4b2}
+.tag{display:inline-block;border:1px solid #2a3242;border-radius:999px;padding:2px 12px;font-size:.85rem;color:#7fd1a8;margin-bottom:14px}
+code{background:#161b26;border:1px solid #2a3242;border-radius:6px;padding:2px 8px;font-size:.9em;color:#cdd6e0}
+a{color:#7fb4ff}
+.step{display:flex;gap:12px;margin:10px 0;align-items:baseline}
+.step b{color:#e6e9ef;min-width:1.4em}
+</style>
+</head>
+<body>
+<main>
+<span class="tag">domain live · build in progress</span>
+<h1>xsnapshot</h1>
+<p><strong>Your X profile, persistent and crawlable.</strong> X walls your posts off from the web — but the archive is yours. Export it, submit it, and it becomes a normal website: indexable by any crawler, searchable, permanent.</p>
+<div class="step"><b>1</b><span>Request your official X archive download (Settings → Your account → Download an archive).</span></div>
+<div class="step"><b>2</b><span>Run the generator: <code>node cli.js /path/to/archive ./out</code></span></div>
+<div class="step"><b>3</b><span>Your snapshot lives at <code>xsnapshot.app/@handle/</code> — sitemap, JSON-LD, full-text data, robots-welcome.</span></div>
+<p style="margin-top:28px"><a href="https://github.com/VeigaPunk/xsnapshot">Source &amp; generator on GitHub</a></p>
+</main>
+</body>
+</html>
