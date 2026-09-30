@@ -110,12 +110,13 @@ function generateHTML(snapshot) {
     const DATA = ${JSON.stringify({ profile, tweets, snapshot_date: snapshotDate }).replace(/</g, '\\u003c')};
     const timeline = document.getElementById('timeline');
     function render(list) {
-      timeline.innerHTML = list.map(t => `
-        <article class="tweet" data-text="${escapeHtml((t.text || '').toLowerCase())}">
-          <time datetime="${escapeHtml(t.created_at || '')}">${escapeHtml(t.created_at || '')}</time>
-          <p>${escapeHtml(t.text || '')}</p>
-          ${(t.media && t.media.length) ? `<div class="handle">Media: ${t.media.map(m => escapeHtml(m.url || '')).join(', ')}</div>` : ''}
-        </article>`).join('');
+      timeline.innerHTML = list.map(function(t) {
+        return '<article class="tweet" data-text="' + escapeHtml((t.text || '').toLowerCase()) + '">' +
+          '<time datetime="' + escapeHtml(t.created_at || '') + '">' + escapeHtml(t.created_at || '') + '</time>' +
+          '<p>' + escapeHtml(t.text || '') + '</p>' +
+          ((t.media && t.media.length) ? '<div class="handle">Media: ' + t.media.map(function(m) { return escapeHtml(m.url || ''); }).join(', ') + '</div>' : '') +
+          '</article>';
+      }).join('');
     }
     render(DATA.tweets);
     document.getElementById('q').addEventListener('input', e => {
